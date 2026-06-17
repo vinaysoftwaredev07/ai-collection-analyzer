@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline mb-2 inline-block">&larr; Back to Dashboard</a>
+        <h1 class="text-3xl font-bold text-gray-800">Add New Borrower</h1>
+        <p class="text-gray-600">Enter details to add a new delinquent account with support for file uploads (pdf, jpg, jpeg, png).</p>
+    </div>
+</div>
+
+<div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto">
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <div>
+            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <p class="text-red-500 text-xs italic mt-1">{{ form.name.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="{{ form.days_past_due.id_for_label }}" class="block text-sm font-medium text-gray-700">Days Past Due</label>
+                {{ form.days_past_due }}
+                {% if form.days_past_due.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">{{ form.days_past_due.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.amount_owed.id_for_label }}" class="block text-sm font-medium text-gray-700">Amount Owed</label>
+                {{ form.amount_owed }}
+                {% if form.amount_owed.errors %}
+                    <p class="text-red-500 text-xs italic mt-1">{{ form.amount_owed.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            <label for="{{ form.prior_payment_behavior.id_for_label }}" class="block text-sm font-medium text-gray-700">Prior Payment Behavior</label>
+            {{ form.prior_payment_behavior }}
+            {% if form.prior_payment_behavior.errors %}
+                <p class="text-red-500 text-xs italic mt-1">{{ form.prior_payment_behavior.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.preferred_channel.id_for_label }}" class="block text-sm font-medium text-gray-700">Preferred Channel</label>
+            {{ form.preferred_channel }}
+            {% if form.preferred_channel.errors %}
+                <p class="text-red-500 text-xs italic mt-1">{{ form.preferred_channel.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center">
+            {{ form.hardship_indicator }}
+            <label for="{{ form.hardship_indicator.id_for_label }}" class="ml-2 block text-sm text-gray-900">
+                Hardship Indicator
+            </label>
+            {% if form.hardship_indicator.errors %}
+                <p class="text-red-500 text-xs italic ml-2 mt-1">{{ form.hardship_indicator.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.document.id_for_label }}" class="block text-sm font-medium text-gray-700">Upload Document (Optional - pdf, jpg, jpeg, png)</label>
+            {{ form.document }}
+            {% if form.document.errors %}
+                <p class="text-red-500 text-xs italic mt-1">{{ form.document.errors.0 }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-400 mt-1">Max file size: 5 MB. Supported formats: PDF, JPG, JPEG, PNG.</p>
+        </div>
+
+        <div class="pt-4 border-t border-gray-200">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors shadow">
+                Save Borrower
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    /**
+     * Helper to extract the CSRF token from cookies.
+     * Required for AJAX POST requests to Django endpoints.
+     */
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                return decodeURIComponent(cookie.substring(name.length + 1));
+            }
+        }
+        // Fallback: try to get from the hidden form input
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        return input ? input.value : '';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const documentInput = document.getElementById('{{ form.document.id_for_label }}');
+        
+        if(documentInput) {
+            documentInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if(!file) return;
+
+                // Client-side size check (5 MB)
+                const maxSize = 5 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert('File is too large. Maximum size is 5 MB.');
+                    e.target.value = '';
+                    return;
+                }
+
+                // Client-side extension check
+                const ext = file.name.split('.').pop().toLowerCase();
+                const allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
+                if (!allowedExts.includes(ext)) {
+                    alert('Unsupported file type. Allowed: ' + allowedExts.join(', '));
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Show a loading state
+                const btn = document.querySelector('button[type="submit"]');
+                const originalText = btn.innerText;
+                btn.innerText = 'Parsing Document...';
+                btn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('document', file);
+
+                fetch("{% url 'parse_document' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.error) {
+                        alert("Error parsing document: " + data.error);
+                    } else {
+                        if(data.name) document.getElementById('{{ form.name.id_for_label }}').value = data.name;
+                        if(data.days_past_due !== undefined) document.getElementById('{{ form.days_past_due.id_for_label }}').value = data.days_past_due;
+                        if(data.amount_owed !== undefined) document.getElementById('{{ form.amount_owed.id_for_label }}').value = data.amount_owed;
+                        if(data.prior_payment_behavior) document.getElementById('{{ form.prior_payment_behavior.id_for_label }}').value = data.prior_payment_behavior;
+                        if(data.preferred_channel) document.getElementById('{{ form.preferred_channel.id_for_label }}').value = data.preferred_channel;
+                        
+                        if(data.hardship_indicator !== undefined) {
+                            const boolVal = typeof data.hardship_indicator === 'string' ? (data.hardship_indicator.toLowerCase() === 'true' || data.hardship_indicator.toLowerCase() === 'yes') : Boolean(data.hardship_indicator);
+                            document.getElementById('{{ form.hardship_indicator.id_for_label }}').checked = boolVal;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("An error occurred while parsing the document.");
+                })
+                .finally(() => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

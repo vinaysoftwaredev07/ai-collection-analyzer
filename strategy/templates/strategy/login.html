@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Collections Optimizer AI</h1>
+            <p class="text-gray-500 mt-1">Sign in to access the agent dashboard</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+            <p class="font-medium">Invalid credentials</p>
+            <p class="text-sm">Please check your username and password.</p>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="space-y-5">
+            {% csrf_token %}
+            <div>
+                <label for="id_username" class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" name="username" id="id_username" required autofocus
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <label for="id_password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" name="password" id="id_password" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border">
+            </div>
+            <div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors shadow">
+                    Sign In
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 border-t pt-4">
+            <p class="text-xs text-gray-400 text-center mb-2">Demo Credentials</p>
+            <div class="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div class="bg-gray-50 p-2 rounded">
+                    <span class="font-semibold">Supervisor:</span><br>
+                    supervisor / supervisor123
+                </div>
+                <div class="bg-gray-50 p-2 rounded">
+                    <span class="font-semibold">Agent:</span><br>
+                    agent1 / agent123
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

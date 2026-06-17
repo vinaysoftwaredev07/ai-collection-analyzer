@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <a href="{% url 'dashboard' %}" class="text-blue-600 hover:underline mb-2 inline-block">&larr; Back to Dashboard</a>
+        <h1 class="text-3xl font-bold text-gray-800">{{ borrower.name }}</h1>
+        <p class="text-gray-600">Borrower Profile & Strategy</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Profile Card -->
+    <div class="bg-white p-6 rounded-lg shadow-md col-span-1">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Profile Details</h2>
+        <ul class="space-y-3">
+            <li class="flex justify-between">
+                <span class="text-gray-500">Days Past Due:</span>
+                <span class="font-medium {% if borrower.days_past_due > 60 %}text-red-600{% endif %}">{{ borrower.days_past_due }}</span>
+            </li>
+            <li class="flex justify-between">
+                <span class="text-gray-500">Amount Owed:</span>
+                <span class="font-medium">${{ borrower.amount_owed }}</span>
+            </li>
+            <li class="flex justify-between">
+                <span class="text-gray-500">Prior Behavior:</span>
+                <span class="font-medium">{{ borrower.prior_payment_behavior }}</span>
+            </li>
+            <li class="flex justify-between">
+                <span class="text-gray-500">Hardship Indicator:</span>
+                <span class="font-medium {% if borrower.hardship_indicator %}text-purple-600{% endif %}">{{ borrower.hardship_indicator|yesno:"Yes,No" }}</span>
+            </li>
+            <li class="flex justify-between">
+                <span class="text-gray-500">Preferred Channel:</span>
+                <span class="font-medium">{{ borrower.preferred_channel }}</span>
+            </li>
+            {% if borrower.document %}
+            <li class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                <span class="text-gray-500">Uploaded Document:</span>
+                <a href="{% url 'serve_document' borrower.pk %}" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    View File
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+        
+        <form method="POST" class="mt-6" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.innerHTML = 'Generating...';">
+            {% csrf_token %}
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors shadow flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                </svg>
+                Generate AI Strategy
+            </button>
+        </form>
+    </div>
+
+    <!-- AI Strategy Output -->
+    <div class="col-span-1 md:col-span-2">
+        {% if ai_strategy %}
+            <div class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500 mb-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">AI Recommendation</h2>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-400">AI Generated</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 p-4 rounded-md border border-gray-100">
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Segment</h3>
+                        <p class="text-lg font-medium text-indigo-700">{{ ai_strategy.segment }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-md border border-gray-100">
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Best Action</h3>
+                        <p class="text-lg font-medium text-emerald-700">{{ ai_strategy.recommendedAction }}</p>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Explainability (Why?)</h3>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+                        <p class="text-gray-700">{{ ai_strategy.explanation }}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Draft Message ({{ borrower.preferred_channel }})</h3>
+                    <div class="bg-gray-800 text-gray-100 p-4 rounded-md font-mono text-sm shadow-inner relative group">
+                        <p class="whitespace-pre-wrap">{{ ai_strategy.messageDraft }}</p>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="bg-gray-50 p-12 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center h-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <h3 class="text-xl font-medium text-gray-600 mb-2">No Strategy Generated Yet</h3>
+                <p class="text-gray-500 max-w-sm">Click the "Generate AI Strategy" button to analyze this borrower's profile and recommend the next best action.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
